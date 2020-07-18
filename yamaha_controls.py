@@ -4,6 +4,7 @@ import requests
 import xml.etree.ElementTree as ET
 import argparse
 import configparser
+import os
 
 program_version = '0.0.1'
 
@@ -17,7 +18,7 @@ version = 0
 ip = ''
 
 config = configparser.ConfigParser()
-config.read('network.conf')
+config.read(os.path.dirname(__file__)+'/network.conf')
 ip = config.get('yamaha.config', 'yamaha_ip')
 
 url = 'http://' + ip + '/YamahaRemoteControl/ctrl'

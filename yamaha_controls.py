@@ -72,6 +72,16 @@ def set_volume_raw(volume_raw):
     data = '<YAMAHA_AV cmd="PUT"><Main_Zone><Volume><Lvl><Val>' + str(10 * float(volume_raw)).replace('.0', '') + '</Val><Exp>1</Exp><Unit>dB</Unit></Lvl></Volume></Main_Zone></YAMAHA_AV>'
     x = requests.post(url,data)
 
+def toggle_power():
+    global power
+    if power == "On":
+        power = 'Standby'
+    else:
+        power = 'On'
+    print(power)
+    data = '<YAMAHA_AV cmd="PUT"><Main_Zone><Power_Control><Power>'+power+'</Power></Power_Control></Main_Zone></YAMAHA_AV>'
+    x = requests.post(url,data)
+
 def set_volume_increase():
     global volume
     get_settings()
@@ -113,7 +123,10 @@ parser.add_argument('-vu', '--volume-up', dest='volume_up', default=False,action
                     help=('Increase volume by .5 dbm '))
 
 parser.add_argument('-vd','--volume-down',dest='volume_down', default=False, action='store_true',
-                    help=('Decrease volume by .5 dbm'))                    
+                    help=('Decrease volume by .5 dbm'))
+
+parser.add_argument('-tp','--toggle-power',dest='toggle', default=False, action='store_true',
+                    help=('Toggle power'))                       
 
 parser.add_argument('--input', dest='input',
                     help=('Change input to provided string'))
@@ -142,6 +155,7 @@ elif args.list_inputs:
     display_inputs()
 elif args.display_version:
     print("Program Version:",program_version)
-
+elif args.toggle:
+    toggle_power()
 
 

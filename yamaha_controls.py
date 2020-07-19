@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import sys
 import requests
 import xml.etree.ElementTree as ET
 import argparse
@@ -17,7 +18,7 @@ usage_menu = (
         "  +-------------------------------+-------------------------+\n"
         "  | Volume Down    j or <Down>    | List Inputs        i    |\n"
         "  | Volume Up      k or <Up>      | List Sounds        s    |\n"
-        "  | Toggle Power   t              |                         |\n"
+        "  | Toggle Power   t              | Input/Sound        /    |\n"
         "  +-------------------------------+-------------------------+\n"
         "   (press q to exit)\n")
 
@@ -36,6 +37,7 @@ class YamahaCLI():
         self.model_name = 0
         self.system_id = 0
         self.version = 0
+        self.input_list = []
     class SoundsHTMLParser(HTMLParser):
         def __init__(self):
                 HTMLParser.__init__(self)
@@ -71,13 +73,12 @@ class YamahaCLI():
     def list_inputs(self):
         data = '<YAMAHA_AV cmd="GET"><System><Config>GetParam</Config></System></YAMAHA_AV>'
         x = requests.post(url,data)
-        input_list = []
         root = ET.fromstring(x.content)
         for child in root.iter('*'):
             if child.tag == 'Input':
                 for inputs in child.iter('*'):
-                    input_list.append(inputs.text)
-        print(*input_list, sep = " / ")
+                    self.input_list.append(inputs.text)
+        print(*self.input_list, sep = " / ")
                     
 
     def get_config(self):
@@ -183,6 +184,53 @@ class YamahaCLI():
 
         return parser.parse_args()
 
+
+    def text_entry(self):
+        """ Relay literal text entry from user to Roku until
+        <Enter> or <Esc> pressed. """
+
+        allowed_sequences = set(['KEY_ENTER', 'KEY_ESCAPE', 'KEY_DELETE'])
+
+        sys.stdout.write('Enter text (<Esc> to abort) : ')
+        sys.stdout.flush()
+
+        # Track start column to ensure user doesn't backspace too far
+        start_column = self.term.get_location()[1]
+        cur_column = start_column
+        choice = ''
+        with self.term.cbreak():
+            val = ''
+            while val != 'KEY_ENTER' and val != 'KEY_ESCAPE':
+                val = self.term.inkey()
+                if not val:
+                    continue
+                elif val.is_sequence:
+                    val = val.name
+                    if val not in allowed_sequences:
+                        continue
+
+                if val == 'KEY_ENTER':
+                    break
+                elif val == 'KEY_ESCAPE':
+                    pass
+                elif val == 'KEY_DELETE':
+                    if cur_column > start_column:
+                        sys.stdout.write(u'\b \b')
+                        cur_column -= 1
+                        choice = choice[:-1]
+                else:
+                    choice = choice + val
+                    sys.stdout.write(val)
+                    cur_column += 1
+                sys.stdout.flush()
+
+            # Clear to beginning of line
+            self.set_input(choice)
+            self.set_sound_stage(choice)
+            sys.stdout.write(self.term.clear_bol)
+            sys.stdout.write(self.term.move(self.term.height, 0))
+            sys.stdout.flush()
+
     def run(self):
 
         cmd_func_map = {
@@ -192,7 +240,8 @@ class YamahaCLI():
             'KEY_RIGHT':  self.list_sound_programs,
             't':          self.toggle_power,
             'i':          self.list_inputs,
-            's':          self.list_sound_programs}
+            's':          self.list_sound_programs,
+            '/':          self.text_entry}
 
         args = self.parseargs()
 
@@ -216,7 +265,8 @@ class YamahaCLI():
             self.list_sound_programs
         else:
             # Main interactive loop
-            print(usage_menu)
+            sys.stdout.write(usage_menu)
+            sys.stdout.flush()
             with self.term.cbreak():
                 val = ''
                 while val.lower() != 'q':

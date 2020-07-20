@@ -122,6 +122,11 @@ class YamahaCLI():
         data = '<YAMAHA_AV cmd="PUT"><Main_Zone><Power_Control><Power>'+self.power+'</Power></Power_Control></Main_Zone></YAMAHA_AV>'
         requests.post(url,data)
 
+    def set_power(self, user_power):
+        print(self.power)
+        data = '<YAMAHA_AV cmd="PUT"><Main_Zone><Power_Control><Power>'+user_power+'</Power></Power_Control></Main_Zone></YAMAHA_AV>'
+        requests.post(url,data)
+
     def set_volume_increase(self):
         self.get_settings
         self.volume += 5
@@ -163,6 +168,12 @@ class YamahaCLI():
 
         parser.add_argument('-vd','--volume-down',dest='volume_down', default=False, action='store_true',
                             help=('Decrease volume by .5 dbm'))
+
+        parser.add_argument('--on',dest='on', default=False, action='store_true',
+                            help=('Power On'))    
+
+        parser.add_argument('--off',dest='off', default=False, action='store_true',
+                            help=('Power Off'))    
 
         parser.add_argument('-tp','--toggle-power',dest='toggle', default=False, action='store_true',
                             help=('Toggle power'))                       
@@ -263,6 +274,10 @@ class YamahaCLI():
             self.set_sound_stage(str(args.sound).replace('_', ' '))
         elif args.list_sound:
             self.list_sound_programs
+        elif args.on:
+            self.set_power('On')
+        elif args.off:
+            self.set_power('Standby')
         else:
             # Main interactive loop
             sys.stdout.write(usage_menu)
